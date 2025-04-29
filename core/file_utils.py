@@ -1,8 +1,14 @@
+from urllib import request
 
 def read_raw_text(filepath: str) -> str:
     try:
-        with open(filepath, 'r', encoding='utf-8') as file:
-            return file.read()
+        if filepath.startswith('http://') or filepath.startswith('https://'):
+            
+            with request.urlopen(filepath) as response:
+                return response.read().decode('urf-8')
+        else:
+            with open(filepath, 'r', encoding='utf-8') as file:
+                return file.read()
     except FileNotFoundError:
         print(f"File not found: {filepath}")
     except IOError as e:
