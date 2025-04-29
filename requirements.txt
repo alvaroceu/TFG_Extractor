@@ -1,2 +1,5 @@
 pandas
 openpyxl
+nltk
+numpy==1.26.4
+spacy
