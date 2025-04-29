@@ -3,3 +3,4 @@ openpyxl
 nltk
 numpy==1.26.4
 spacy
+regex==2023.12.25
