@@ -1,4 +1,6 @@
 import nltk
+import string
+import re
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
@@ -10,6 +12,12 @@ stop_words = set(stopwords.words('english'))
 def tokenize(text:str) -> list[str]:
     """Tokenize text into a list of words/tokens."""
     return nltk.word_tokenize(text)
+
+def clean_tokens(tokens: list[str]) -> list[str]:
+    """Lowercase, remove punctuation and filter empty strings"""
+    tokens = [token.lower() for token in tokens]
+    tokens = [token for token in tokens if token not in string.punctuation]
+    return [re.sub(r'^\W+|\W+$', '', token) for token in tokens if re.sub(r'^\W+|\W+$', '', token) != '']
 
 def remove_stopwords(tokens: list[str]) -> list[str]:
     """Ignore common english stopwords"""
@@ -36,6 +44,7 @@ def lemmatize(tokens: list[str]) -> list[str]:
 def preprocess(text: str) -> list[str]:
     """Full preprocessing"""
     tokens = tokenize(text)
+    tokens = clean_tokens(tokens)
     tokens = remove_stopwords(tokens)
     tokens = lemmatize(tokens)
     return tokens
