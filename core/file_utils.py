@@ -5,7 +5,7 @@ def read_raw_text(filepath: str) -> str:
         if filepath.startswith('http://') or filepath.startswith('https://'):
             
             with request.urlopen(filepath) as response:
-                return response.read().decode('urf-8')
+                return response.read().decode('utf-8')
         else:
             with open(filepath, 'r', encoding='utf-8') as file:
                 return file.read()
