@@ -1,6 +1,7 @@
 from urllib import request
 
 def read_raw_text(filepath: str) -> str:
+    """Reads and returns raw text content from a local file or a URL"""
     try:
         if filepath.startswith('http://') or filepath.startswith('https://'):
             
