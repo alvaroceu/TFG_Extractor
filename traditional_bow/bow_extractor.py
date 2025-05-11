@@ -29,12 +29,17 @@ class BoWExtractor(ExtractorBase):
         return results
     
     def similarity_score(self, token_list_1: List[str], token_list_2: List[str]) -> int:
-        """Calculates the numer of matches between two sets of tokens"""
+        """Compute F1-score based similarity between two sets of tokens."""
 
-        score = 0
+        set1 = set(token_list_1)
+        set2 = set(token_list_2)
+        intersection = set1 & set2
+        precision = len(intersection) / len(set2) if set2 else 0
+        recall = len(intersection) / len(set1) if set1 else 0
 
-        for token1 in token_list_1:
-            for token2 in token_list_2:
-                if token1 == token2: score += 1
+        if precision + recall == 0:
+            return 0
         
+        score = 2 * (precision * recall) / (precision + recall)
+
         return score
