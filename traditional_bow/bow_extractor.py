@@ -1,15 +1,17 @@
 from core.extractor_base import ExtractorBase
 from traditional_bow.preprocessing import preprocess
-from typing import List, Dict
+from traditional_bow.preprocessing import preprocess_questions
+from typing import List
 
 class BoWExtractor(ExtractorBase):
 
-    def extract(self, text: str, bags_of_words: Dict[str, List[str]]):
+    def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column."""
         
         results = {}
 
         preprocessed_sentences = preprocess(text)
+        bags_of_words = preprocess_questions(questions)
 
         for column, bag_of_words in bags_of_words.items():
             best_score = 0

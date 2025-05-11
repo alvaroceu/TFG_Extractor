@@ -6,7 +6,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
 from nltk.tokenize import sent_tokenize
 from nltk import pos_tag
-from typing import List
+from typing import List, Dict
 
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
@@ -62,3 +62,15 @@ def preprocess(text: str) -> list[tuple[str, list[str]]]:
         processed.append((sentence, tokens))
 
     return processed
+
+def preprocess_questions(questions: str) -> Dict[str, list[str]]:
+    """Preprocesses the questions used to extract information"""
+    preprocessed_questions = {}
+
+    for line in questions.splitlines():
+        if ':' in line:
+            key, question = line.strip().split(':', 1)
+            processed = preprocess(question.strip()) # returns [('Full question'), [question tokens]]
+            preprocessed_questions[key.strip()] = processed[0][1] if processed else [] # gets only the question tokens
+    
+    return preprocessed_questions
