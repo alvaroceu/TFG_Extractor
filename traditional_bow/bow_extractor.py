@@ -9,30 +9,22 @@ class BoWExtractor(ExtractorBase):
         
         results = {}
 
-        paragraphs = self.split_text_into_paragraphs(text) 
-        preprocessed_paragraphs = [(paragraph, preprocess(paragraph)) for paragraph in paragraphs]
+        preprocessed_sentences = preprocess(text)
 
         for column, bag_of_words in bags_of_words.items():
             best_score = 0
             best_answer = "A possible valid answer wasn't found"
 
-            for paragraph, paragraph_tokens in preprocessed_paragraphs:
+            for sentence, sentence_tokens in preprocessed_sentences:
 
-                score = self.similarity_score(paragraph_tokens, bag_of_words)
+                score = self.similarity_score(sentence_tokens, bag_of_words)
                 if score > best_score:
                     best_score = score
-                    best_answer = paragraph
+                    best_answer = sentence
 
             results[column] = best_answer
         
         return results
-
-    
-    def split_text_into_paragraphs(self, text: str) -> List[str]:
-        """Divides the content of the input document in the original paragraphs"""
-
-        paragraphs = [paragraph.strip() for paragraph in text.split('\n') if paragraph.strip()]
-        return paragraphs
     
     def similarity_score(self, token_list_1: List[str], token_list_2: List[str]) -> int:
         """Calculates the numer of matches between two sets of tokens"""

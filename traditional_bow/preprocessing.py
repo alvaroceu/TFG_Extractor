@@ -4,10 +4,18 @@ import re
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import wordnet
+from nltk.tokenize import sent_tokenize
 from nltk import pos_tag
+from typing import List
 
 lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
+
+def split_text_into_sentences(text: str) -> List[str]:
+        """Divides the content of the input document in the original sentences"""
+
+        sentences = sent_tokenize(text)
+        return sentences
 
 def tokenize(text:str) -> list[str]:
     """Tokenize text into a list of words/tokens."""
@@ -41,10 +49,16 @@ def lemmatize(tokens: list[str]) -> list[str]:
     tagged_tokens = pos_tag(tokens)
     return [lemmatizer.lemmatize(token, get_wordnet_pos(tag)) for token, tag in tagged_tokens]
 
-def preprocess(text: str) -> list[str]:
+def preprocess(text: str) -> list[tuple[str, list[str]]]:
     """Full preprocessing"""
-    tokens = tokenize(text)
-    tokens = clean_tokens(tokens)
-    tokens = remove_stopwords(tokens)
-    tokens = lemmatize(tokens)
-    return tokens
+    processed = []
+
+    sentences = split_text_into_sentences(text)
+    for sentence in sentences:
+        tokens = tokenize(sentence)
+        tokens = clean_tokens(tokens)
+        tokens = remove_stopwords(tokens)
+        tokens = lemmatize(tokens)
+        processed.append((sentence, tokens))
+
+    return processed
