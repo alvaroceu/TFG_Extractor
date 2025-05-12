@@ -1,6 +1,8 @@
 from traditional_bow.bow_extractor import BoWExtractor
 from core.file_utils import read_raw_text
 from pprint import pprint
+from core.export_utils import *
+import os
 
 def main():
 
@@ -9,7 +11,12 @@ def main():
 
     extractor = BoWExtractor()
     results = extractor.extract(text, questions) 
-    pprint(results)
+
+    results_dict = {}
+    results_dict[os.path.basename("data/example.txt")] = results
+    results_dict["Otra fila"] = results
+    
+    export_results_to_excel(questions,results_dict,"resultado.xlsx")
 
 if __name__ == "__main__":
     main()
