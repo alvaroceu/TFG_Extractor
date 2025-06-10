@@ -74,3 +74,14 @@ def preprocess_questions(questions: str) -> Dict[str, list[str]]:
             preprocessed_questions[key.strip()] = processed[0][1] if processed else [] # gets only the question tokens
     
     return preprocessed_questions
+
+def parse_questions_embeddings(questions: str) -> Dict[str, str]:
+    """Parses the questions used to extract information"""
+    parsed = {}
+
+    for line in questions.splitlines():
+        if ':' in line:
+            key, question = line.strip().split(':', 1)
+            parsed[key.strip()] = question.strip()
+    
+    return parsed
