@@ -1,0 +1,12 @@
+from sentence_transformers import SentenceTransformer
+from core.extractor_base import ExtractorBase
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+class EmbedExtractor(ExtractorBase):
+
+    def extract(self, text: str, questions: str):
+        """Extract relevant information from text for each column."""
+
+        embeddings = model.encode(["Hello World", "Hello World 2"])
+        return embeddings
