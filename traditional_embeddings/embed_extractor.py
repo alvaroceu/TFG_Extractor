@@ -2,7 +2,7 @@ from sentence_transformers import SentenceTransformer
 from core.extractor_base import ExtractorBase
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from traditional_bow.preprocessing import *
+from core.preprocessing import *
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 

@@ -1,5 +1,5 @@
 import unittest
-from traditional_bow.preprocessing import *
+from core.preprocessing import *
 from traditional_bow.bow_extractor import *
 
 class TestPreprocessing(unittest.TestCase):

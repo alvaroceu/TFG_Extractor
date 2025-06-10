@@ -1,6 +1,6 @@
 from core.extractor_base import ExtractorBase
-from traditional_bow.preprocessing import preprocess
-from traditional_bow.preprocessing import preprocess_questions
+from core.preprocessing import preprocess
+from core.preprocessing import preprocess_questions
 from typing import List
 
 class BoWExtractor(ExtractorBase):
