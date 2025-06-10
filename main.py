@@ -1,4 +1,5 @@
 from traditional_bow.bow_extractor import BoWExtractor
+from traditional_embeddings.embed_extractor import EmbedExtractor
 from core.file_utils import read_raw_text
 from pprint import pprint
 from core.export_utils import *
@@ -9,7 +10,7 @@ def main():
     text = read_raw_text("data/example.txt")
     questions = read_raw_text("data/questions.txt")
 
-    extractor = BoWExtractor()
+    extractor = EmbedExtractor()
     results = extractor.extract(text, questions) 
 
     results_dict = {}
