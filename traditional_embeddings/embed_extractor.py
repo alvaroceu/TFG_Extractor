@@ -29,4 +29,8 @@ class EmbedExtractor(ExtractorBase):
 
         similarities = cosine_similarity([question_embedding], sentence_embeddings)[0]
         best_index = np.argmax(similarities)
+        best_score = similarities[best_index]
+
+        if best_score < 0.4:
+            return "A possible valid answer wasn't found"
         return sentences[best_index]
