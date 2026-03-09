@@ -3,7 +3,7 @@ from core.extractor_base import ExtractorBase
 from core.preprocessing import *
 
 #otros posibles: deepset/roberta-base-squad2
-model = pipeline('question-answering', model='deepset/bert-large-uncased-whole-word-masking-squad2', tokenizer='deepset/bert-large-uncased-whole-word-masking-squad2')
+model = pipeline('question-answering', model='deepset/bert-large-uncased-whole-word-masking-squad2', tokenizer='deepset/bert-large-uncased-whole-word-masking-squad2', device=0)
 
 class TransformerBertExtractor(ExtractorBase):
 

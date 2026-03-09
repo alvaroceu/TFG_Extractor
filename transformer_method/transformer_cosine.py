@@ -4,7 +4,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 from core.preprocessing import *
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('all-MiniLM-L6-v2', device='cuda')
 
 class TransformerCosineExtractor(ExtractorBase):
 
