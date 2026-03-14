@@ -6,6 +6,10 @@ import numpy as np
 
 class TfidfExtractor(ExtractorBase):
 
+    def __init__(self, threshold: float = 0.4):
+
+        self.threshold = threshold
+
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column."""
 

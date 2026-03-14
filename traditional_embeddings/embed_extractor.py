@@ -4,9 +4,10 @@ from core.preprocessing import preprocess, parse_questions_embeddings
 
 class EmbedExtractorGloVe(ExtractorBase):
 
-    def __init__(self):
+    def __init__(self, threshold: float = 0.4):
 
         self.model = spacy.load("en_core_web_lg")
+        self.threshold = threshold
 
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column using static embeddings."""
@@ -48,7 +49,7 @@ class EmbedExtractorGloVe(ExtractorBase):
                 best_score = score
                 best_sentence = original_sentence
 
-        if best_score < 0.4:
+        if best_score < self.threshold:
             return "A possible valid answer wasn't found"
         
         return best_sentence

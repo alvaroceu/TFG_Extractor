@@ -5,6 +5,10 @@ from typing import List
 
 class BoWExtractor(ExtractorBase):
 
+    def __init__(self, threshold: float = 0.4):
+
+        self.threshold = threshold
+
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column."""
         
