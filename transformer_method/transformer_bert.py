@@ -12,23 +12,18 @@ class TransformerBertExtractor(ExtractorBase):
 
         results = {}
 
-        sentences = split_text_into_sentences(text)
         parsed_questions = parse_questions_embeddings(questions)
 
-        chunk_size=8
-        chunks = [' '.join(sentences[i:i + chunk_size]) for i in range(0, len(sentences), chunk_size)]
-
         for key, question in parsed_questions.items():
-            best_answer = "A possible valid answer wasn't found"
-            best_score = 0
+            
+            result = model(question=question,context=text,handle_impossible_answer=True)
 
-            for chunk in chunks:
-                result = model(question=question,context=chunk)
-                if result['score'] > best_score:
-                    best_score = result['score']
-                    best_answer = result['answer']
+            if result['answer'].strip() == "":
+                best_answer = "A possible valid answer wasn't found"
+            else:
+                best_answer = result['answer']
 
             results[key] = best_answer
-            print(f"{key}: score={best_score:.3f} | answer={best_answer}")
+            print(f"{key}: score={result['score']:.3f} | answer={best_answer}")
 
         return results
