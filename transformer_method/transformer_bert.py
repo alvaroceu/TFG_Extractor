@@ -2,10 +2,11 @@ from transformers import pipeline
 from core.extractor_base import ExtractorBase
 from core.preprocessing import *
 
-#otros posibles: deepset/roberta-base-squad2
-model = pipeline('question-answering', model='deepset/bert-large-uncased-whole-word-masking-squad2', tokenizer='deepset/bert-large-uncased-whole-word-masking-squad2', device=0)
-
 class TransformerBertExtractor(ExtractorBase):
+
+    def __init__(self):
+
+        self.model = pipeline('question-answering', model='deepset/bert-large-uncased-whole-word-masking-squad2', tokenizer='deepset/bert-large-uncased-whole-word-masking-squad2', device=0)
 
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column."""
@@ -16,7 +17,7 @@ class TransformerBertExtractor(ExtractorBase):
 
         for key, question in parsed_questions.items():
             
-            result = model(question=question,context=text,handle_impossible_answer=True)
+            result = self.model(question=question,context=text,handle_impossible_answer=True)
 
             if result['answer'].strip() == "":
                 best_answer = "A possible valid answer wasn't found"

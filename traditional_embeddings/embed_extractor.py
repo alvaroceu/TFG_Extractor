@@ -2,9 +2,11 @@ import spacy
 from core.extractor_base import ExtractorBase
 from core.preprocessing import preprocess, parse_questions_embeddings
 
-model = spacy.load("en_core_web_lg")
-
 class EmbedExtractorGloVe(ExtractorBase):
+
+    def __init__(self):
+
+        self.model = spacy.load("en_core_web_lg")
 
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column using static embeddings."""
@@ -18,14 +20,14 @@ class EmbedExtractorGloVe(ExtractorBase):
         for original_sentence, sentence_tokens in preprocessed_sentences:
 
             join_tokens = " ".join(sentence_tokens)
-            vector = model(join_tokens)
+            vector = self.model(join_tokens)
             sentence_gloVe_vectors.append((original_sentence, vector))
 
         for key, question in parsed_questions.items():
 
             preprocessed_question = preprocess(question)
             join_question_tokens = " ".join(preprocessed_question[0][1])
-            question_gloVe_vector = model(join_question_tokens)
+            question_gloVe_vector = self.model(join_question_tokens)
 
             best_sentence = self.cosine_similarity_score(question_gloVe_vector, sentence_gloVe_vectors)
             results[key] = best_sentence
