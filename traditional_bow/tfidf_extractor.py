@@ -42,6 +42,11 @@ class TfidfExtractor(ExtractorBase):
         """Uses cosine similarity to select the sentence that best answers each question"""
 
         similarities = cosine_similarity(question_tfidf, sentences_tfidf)
+
+        best_score = np.max(similarities)
         best_index = np.argmax(similarities)
         
+        if best_score < self.threshold:
+            return "A possible valid answer wasn't found"
+
         return sentences[best_index]

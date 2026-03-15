@@ -28,6 +28,10 @@ class BoWExtractor(ExtractorBase):
                     best_score = score
                     best_answer = sentence
 
+            if best_score < self.threshold:
+
+                best_answer = "A possible valid answwer wasn't found"
+
             results[column] = best_answer
         
         return results
