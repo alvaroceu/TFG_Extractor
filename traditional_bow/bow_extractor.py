@@ -5,7 +5,7 @@ from typing import List
 
 class BoWExtractor(ExtractorBase):
 
-    def __init__(self, threshold: float = 0.4):
+    def __init__(self, threshold: float = 0.35):
 
         self.threshold = threshold
 

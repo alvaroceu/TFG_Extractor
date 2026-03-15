@@ -5,7 +5,7 @@ from core.extractor_base import ExtractorBase
 from core.preprocessing import split_text_into_sentences, parse_questions_embeddings
 
 class USEDANExtractor(ExtractorBase):
-    def __init__(self, threshold: float = 0.4):
+    def __init__(self, threshold: float = 0.5):
 
         self.threshold = threshold
         self.model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")

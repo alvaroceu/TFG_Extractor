@@ -4,7 +4,7 @@ from core.preprocessing import preprocess, parse_questions_embeddings
 
 class EmbedExtractorGloVe(ExtractorBase):
 
-    def __init__(self, threshold: float = 0.4):
+    def __init__(self, threshold: float = 0.85):
 
         self.model = spacy.load("en_core_web_lg")
         self.threshold = threshold
