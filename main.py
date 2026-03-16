@@ -7,6 +7,7 @@ from LSTM_methods.use_dan_extractor import USEDANExtractor
 from core.model_evaluator import *
 from core.file_utils import *
 from core.export_utils import *
+import numpy as np
 
 def main():
     dataset_squad = read_databases_json("data/squad/parsed_squad.json")
@@ -28,10 +29,11 @@ def main():
     all_predictions = {name: [] for name in models.keys()}
     all_references = []
     all_metrics = {}
+    all_times = {name: [] for name in models.keys()}
 
     # Compute results
     print("Computing results...")
-    for item in dataset_newsqa[:30]:
+    for item in dataset_squad[:20]:
         text = item["text"]
         questions = item["questions"]
         ground_truths = item["ground_truths"]
@@ -40,8 +42,9 @@ def main():
             all_references.append(ref)
 
         for name, model in models.items():
-            results_dict = model.extract(text, questions)
-            
+            results_dict, exec_time = model.timed_extract(text, questions)
+            all_times[name].append(exec_time)
+
             for q_id in ground_truths.keys():
                 pred = results_dict.get(q_id, "")
                 all_predictions[name].append(pred)
@@ -50,6 +53,12 @@ def main():
     print("Evaluating results...")
     for name in models.keys():
         metrics = evaluator.evaluate_model(all_predictions[name], all_references)
+        
+        model_times = all_times[name]
+        metrics["Average Time (s) per context"] = np.mean(model_times)
+        metrics["Max Time (s)"] = np.max(model_times)
+        metrics["Total Time (s)"] = np.sum(model_times)
+        
         all_metrics[name] = metrics
     
     # Export results and metrics
