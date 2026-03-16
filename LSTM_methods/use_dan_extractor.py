@@ -5,9 +5,8 @@ from core.extractor_base import ExtractorBase
 from core.preprocessing import split_text_into_sentences, parse_questions_embeddings
 
 class USEDANExtractor(ExtractorBase):
-    def __init__(self, threshold: float = 0.5):
+    def __init__(self):
 
-        self.threshold = threshold
         self.model = hub.load("https://tfhub.dev/google/universal-sentence-encoder/4")
 
     def extract(self, text: str, questions: str):
@@ -28,7 +27,7 @@ class USEDANExtractor(ExtractorBase):
             best_index = np.argmax(similarities)
             best_score = similarities[best_index]
 
-            if best_score < self.threshold:
+            if best_score < 0.4:
                 results[key] = "A possible valid answer wasn't found"
             else:
                 results[key] = sentences[best_index]

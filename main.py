@@ -2,13 +2,11 @@ from traditional_bow.bow_extractor import BoWExtractor
 from traditional_bow.tfidf_extractor import TfidfExtractor
 from traditional_embeddings.embed_extractor import EmbedExtractorGloVe
 from transformer_method.transformer_bert import TransformerBertExtractor
-from transformer_method.transformer_cosine import TransformerCosineExtractor
-from LSTM_methods.flair_LSTM_extractor import FlairLSTMExtractor
+from transformer_method.transformer_distilbert import TransformerDistilBertExtractor
+from LSTM_methods.use_dan_extractor import USEDANExtractor
 from core.model_evaluator import *
 from core.file_utils import *
-from pprint import pprint
 from core.export_utils import *
-import os
 
 def main():
     dataset_squad = read_databases_json("data/squad/parsed_squad.json")
@@ -20,8 +18,8 @@ def main():
         'BoW': BoWExtractor(),
         'tf-idf': TfidfExtractor(),
         'Embeddings gloVe': EmbedExtractorGloVe(),
-        'BiLSTM': FlairLSTMExtractor(),
-        'Transformer Cosine': TransformerCosineExtractor(),
+        'UseDanLSTM': USEDANExtractor(),
+        'Transformer DistilBERT': TransformerDistilBertExtractor(),
         'Transformer BERT': TransformerBertExtractor()
     }
     
@@ -33,7 +31,7 @@ def main():
 
     # Compute results
     print("Computing results...")
-    for item in dataset_naturalquestions[:30]:
+    for item in dataset_newsqa[:30]:
         text = item["text"]
         questions = item["questions"]
         ground_truths = item["ground_truths"]

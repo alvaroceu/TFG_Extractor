@@ -40,12 +40,8 @@ def process_squad():
             
         processed_data.append({"text": context,"questions": questions.strip(),"ground_truths": ground_truths })
         # ground truths: Dict[str, str] --> key:ground truth
-        
-    cal_data = processed_data[:300]
-    test_data = processed_data[300:]
 
-    save_json(test_data, "squad", "parsed_squad.json")
-    save_json(cal_data, "squad", "parsed_calibration_squad.json")
+    save_json(processed_data, "squad", "parsed_squad.json")
 
 def process_newsqa():
     print("Download NewsQA (Validation split) via MRQA...")

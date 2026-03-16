@@ -5,10 +5,6 @@ from typing import List
 
 class BoWExtractor(ExtractorBase):
 
-    def __init__(self, threshold: float = 0.35):
-
-        self.threshold = threshold
-
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column."""
         
@@ -19,6 +15,7 @@ class BoWExtractor(ExtractorBase):
 
         for column, bag_of_words in bags_of_words.items():
             best_score = 0
+            best_answer = "A possible valid answer wasn't found"
 
             for sentence, sentence_tokens in preprocessed_sentences:
 
@@ -26,10 +23,6 @@ class BoWExtractor(ExtractorBase):
                 if score > best_score:
                     best_score = score
                     best_answer = sentence
-
-            if best_score < self.threshold:
-
-                best_answer = "A possible valid answer wasn't found"
 
             results[column] = best_answer
         

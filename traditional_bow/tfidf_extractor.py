@@ -6,10 +6,6 @@ import numpy as np
 
 class TfidfExtractor(ExtractorBase):
 
-    def __init__(self, threshold: float = 0.35):
-
-        self.threshold = threshold
-
     def extract(self, text: str, questions: str):
         """Extract relevant information from text for each column."""
 
@@ -42,11 +38,6 @@ class TfidfExtractor(ExtractorBase):
         """Uses cosine similarity to select the sentence that best answers each question"""
 
         similarities = cosine_similarity(question_tfidf, sentences_tfidf)
-
-        best_score = np.max(similarities)
         best_index = np.argmax(similarities)
         
-        if best_score < self.threshold:
-            return "A possible valid answer wasn't found"
-
         return sentences[best_index]
