@@ -20,26 +20,31 @@ def process_squad():
     
     # Group info by context
     groups = df.groupby('context')
-    
     processed_data = []
     
     for context, group in groups:
-        questions = ""
+        unique_qa = {} 
+        
+        for row in group.itertuples():
+            q = row.question.strip()
+            if q not in unique_qa:
+                answers = row.answers['text']
+                correct_answer = answers[0] if len(answers) > 0 else "No answer found"
+                unique_qa[q] = correct_answer
+                
+        questions_str = ""
         ground_truths = {}
         
-        # Questions of each context
-        for i, row in enumerate(group.itertuples()):
-            key = f"Q{i+1}" # General keys: Q1, Q2, Q3...
-            questions += f"{key}: {row.question}\n"
+        for i, (q, a) in enumerate(unique_qa.items()):
+            key = f"Q{i+1}"
+            questions_str += f"{key}: {q}\n"
+            ground_truths[key] = a
             
-            # Extract answer if exists. Some questions may not have answer
-            answers = row.answers['text']
-            correct_answer = answers[0] if len(answers) > 0 else "No answer found"
-            
-            ground_truths[key] = correct_answer
-            
-        processed_data.append({"text": context,"questions": questions.strip(),"ground_truths": ground_truths })
-        # ground truths: Dict[str, str] --> key:ground truth
+        processed_data.append({
+            "text": context,
+            "questions": questions_str.strip(),
+            "ground_truths": ground_truths
+        })
 
     save_json(processed_data, "squad", "parsed_squad.json")
 
@@ -51,25 +56,31 @@ def process_newsqa():
     
     # Group info by context
     groups = df_filter.groupby('context')
-
     processed_data = []
 
     for context, group in groups:
-        questions = ""
+        unique_qa = {}
+        
+        for row in group.itertuples():
+            q = row.question.strip()
+            if q not in unique_qa:
+                answers = row.answers
+                correct_answer = answers[0] if len(answers) > 0 else "No answer found"
+                unique_qa[q] = correct_answer
+                
+        questions_str = ""
         ground_truths = {}
 
-        # Questions of each context
-        for i, row in enumerate(group.itertuples()):
-            key = f"Q{i+1}"# General keys: Q1, Q2, Q3...
-            questions += f"{key}: {row.question}\n"
-
-            # Extract answer if exists. Some questions may not have answer
-            answers = row.answers
-            correct_answer = answers[0] if len(answers) > 0 else "No answer found"
-            ground_truths[key] = correct_answer
+        for i, (q, a) in enumerate(unique_qa.items()):
+            key = f"Q{i+1}"
+            questions_str += f"{key}: {q}\n"
+            ground_truths[key] = a
             
-        processed_data.append({"text": context, "questions": questions.strip(), "ground_truths": ground_truths})
-        # ground truths: Dict[str, str] --> key:ground truth
+        processed_data.append({
+            "text": context, 
+            "questions": questions_str.strip(), 
+            "ground_truths": ground_truths
+        })
 
     save_json(processed_data, "newsqa", "parsed_newsqa.json")
 
@@ -80,10 +91,8 @@ def process_triviaqa():
     
     data_dict = {}
     
-    # TriviaQA groups as (1 question -> several texts). Change it to (1 text -> several questions)
     for row in df.itertuples():
-        question = row.question
-        # TriviaQA has several possible answers. We take the main (normalized)
+        q = row.question.strip()
         correct_answer = row.answer['normalized_value']
         
         # Extract the context
@@ -92,26 +101,27 @@ def process_triviaqa():
             context = wikipedia[0]
             
             if context not in data_dict:
-                data_dict[context] = {"q": [], "a": []}
+                data_dict[context] = {} 
                 
-            data_dict[context]["q"].append(question)
-            data_dict[context]["a"].append(correct_answer)
+            if q not in data_dict[context]:
+                data_dict[context][q] = correct_answer
 
     processed_data = []
 
-    for context, data in data_dict.items():
-        questions = ""
+    for context, unique_qa in data_dict.items():
+        questions_str = ""
         ground_truths = {}
 
-        # Questions of each context
-        for i, (q, a) in enumerate(zip(data["q"], data["a"])):
-            key = f"Q{i+1}" # General keys: Q1, Q2, Q3...
-            questions += f"{key}: {q}\n"
-
+        for i, (q, a) in enumerate(unique_qa.items()):
+            key = f"Q{i+1}"
+            questions_str += f"{key}: {q}\n"
             ground_truths[key] = a
             
-        processed_data.append({"text": context, "questions": questions.strip(), "ground_truths": ground_truths})
-        # ground truths: Dict[str, str] --> key:ground truth
+        processed_data.append({
+            "text": context, 
+            "questions": questions_str.strip(), 
+            "ground_truths": ground_truths
+        })
 
     save_json(processed_data, "triviaqa", "parsed_triviaqa.json")
 
@@ -123,34 +133,38 @@ def process_natural_questions_mrqa():
     
     # Group info by context
     groups = df_filter.groupby('context')
-
     processed_data = []
 
     for context, group in groups:
-        questions = ""
+        unique_qa = {}
+        
+        for row in group.itertuples():
+            q = row.question.strip()
+            if q not in unique_qa:
+                answers = row.answers
+                correct_answer = answers[0] if len(answers) > 0 else "No answer found"
+                unique_qa[q] = correct_answer
+                
+        questions_str = ""
         ground_truths = {}
 
-        # Questions of each context
-        for i, row in enumerate(group.itertuples()):
-            key = f"Q{i+1}" # General keys: Q1, Q2, Q3...
-            questions += f"{key}: {row.question}\n"
-
-            # Extract answer if exists. Some questions may not have answer
-            answers = row.answers
-            correct_answer = answers[0] if len(answers) > 0 else "No answer found"
+        for i, (q, a) in enumerate(unique_qa.items()):
+            key = f"Q{i+1}"
+            questions_str += f"{key}: {q}\n"
+            ground_truths[key] = a
             
-            ground_truths[key] = correct_answer
-            
-        processed_data.append({"text": context, "questions": questions.strip(), "ground_truths": ground_truths})
-        # ground truths: Dict[str, str] --> key:ground truth
+        processed_data.append({
+            "text": context, 
+            "questions": questions_str.strip(), 
+            "ground_truths": ground_truths
+        })
     
     save_json(processed_data, "natural_questions", "parsed_naturalquestions.json")
 
 if __name__ == "__main__":
-
     process_squad()
     process_newsqa()
     process_triviaqa()
     process_natural_questions_mrqa()
     
-    print("Datasets downloaded")
+    print("Datasets downloaded and deduplicated successfully.")
