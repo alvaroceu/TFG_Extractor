@@ -52,7 +52,7 @@ class ModelEvaluator:
                 
                 if preds == refs:
                     exact_matches += 1
-                if refs in preds: 
+                if (refs in preds) or (preds in refs): 
                     inclusion_matches += 1
 
                 # Save TP pairs
