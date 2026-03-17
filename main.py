@@ -7,6 +7,7 @@ from LSTM_methods.use_dan_extractor import USEDANExtractor
 from core.model_evaluator import *
 from core.file_utils import *
 from core.export_utils import *
+from core.cache_data import warmup_preprocessing_cache
 import numpy as np
 
 def main():
@@ -37,6 +38,9 @@ def main():
         text = item["text"]
         questions = item["questions"]
         ground_truths = item["ground_truths"]
+
+        # Compute preprocessing to store data in cache
+        warmup_preprocessing_cache(text, questions)
 
         for q_id, ref in ground_truths.items():
             all_references.append(ref)
