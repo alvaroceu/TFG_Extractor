@@ -1,7 +1,8 @@
 from core.extractor_base import ExtractorBase
-from core.preprocessing import preprocess
-from core.preprocessing import preprocess_questions
-from typing import List
+from core.preprocessing import preprocess, preprocess_questions
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+import numpy as np
 
 class BoWExtractor(ExtractorBase):
 
@@ -13,33 +14,30 @@ class BoWExtractor(ExtractorBase):
         preprocessed_sentences = preprocess(text)
         bags_of_words = preprocess_questions(questions)
 
-        for column, bag_of_words in bags_of_words.items():
-            best_score = 0
-            best_answer = "A possible valid answer wasn't found"
-
-            for sentence, sentence_tokens in preprocessed_sentences:
-
-                score = self.similarity_score(sentence_tokens, bag_of_words)
-                if score > best_score:
-                    best_score = score
-                    best_answer = sentence
-
-            results[column] = best_answer
+        original_sentences = [sentence for sentence, sentence_tokens in preprocessed_sentences]
+        sentences_tokens = [" ".join(sentence_tokens) for sentence, sentence_tokens in preprocessed_sentences]
+        questions_tokens = [" ".join(question_tokens) for question_tokens in bags_of_words.values()]
         
+        # Build BoW vectors of sentences and questions
+        vectorizer = CountVectorizer()
+        bow_matrix = vectorizer.fit_transform(sentences_tokens + questions_tokens)
+
+        N = len(sentences_tokens)
+        #First N rows --> BoW vectors of sentences
+        sentences_bow = bow_matrix[:N]
+        #Remaining rows --> TF-IDF vectors of questions
+        questions_bow = bow_matrix[N:]
+
+        for index, (column, _) in enumerate(bags_of_words.items()):
+            best_sentence = self.cosine_similarity_score(questions_bow[index], sentences_bow,original_sentences)
+            results[column] = best_sentence
+
         return results
-    
-    def similarity_score(self, token_list_1: List[str], token_list_2: List[str]) -> int:
-        """Compute F1-score based similarity between two sets of tokens."""
 
-        set1 = set(token_list_1)
-        set2 = set(token_list_2)
-        intersection = set1 & set2
-        precision = len(intersection) / len(set2) if set2 else 0
-        recall = len(intersection) / len(set1) if set1 else 0
+    def cosine_similarity_score(self, question_bow, sentences_bow, sentences) -> str:
+        """Uses cosine similarity to select the sentence that best answers each question"""
 
-        if precision + recall == 0:
-            return 0
+        similarities = cosine_similarity(question_bow, sentences_bow)
+        best_index = np.argmax(similarities)
         
-        score = 2 * (precision * recall) / (precision + recall)
-
-        return score
+        return sentences[best_index]
