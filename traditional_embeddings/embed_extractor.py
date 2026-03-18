@@ -1,6 +1,8 @@
 import spacy
 from core.extractor_base import ExtractorBase
 from core.preprocessing import preprocess, parse_questions_embeddings
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 class EmbedExtractorGloVe(ExtractorBase):
 
@@ -9,43 +11,39 @@ class EmbedExtractorGloVe(ExtractorBase):
         self.model = spacy.load("en_core_web_lg")
 
     def extract(self, text: str, questions: str):
-        """Extract relevant information from text for each column using static embeddings."""
+        """Extract relevant information from text using static embeddings and sklearn."""
 
         results = {}
 
         preprocessed_sentences = preprocess(text)
         parsed_questions = parse_questions_embeddings(questions)
 
-        sentence_gloVe_vectors = []
-        for original_sentence, sentence_tokens in preprocessed_sentences:
+        original_sentences = [sentence for sentence, _ in preprocessed_sentences]
 
+        sentence_vectors = []
+        for _, sentence_tokens in preprocessed_sentences:
             join_tokens = " ".join(sentence_tokens)
-            vector = self.model(join_tokens)
-            sentence_gloVe_vectors.append((original_sentence, vector))
+            vector = self.model(join_tokens).vector
+            sentence_vectors.append(vector)
+        
+        sentence_vectors = np.array(sentence_vectors)
 
         for key, question in parsed_questions.items():
-
             preprocessed_question = preprocess(question)
             join_question_tokens = " ".join(preprocessed_question[0][1])
-            question_gloVe_vector = self.model(join_question_tokens)
+            
+            question_vector = self.model(join_question_tokens).vector
+            question_vector_2d = question_vector.reshape(1, -1)
 
-            best_sentence = self.cosine_similarity_score(question_gloVe_vector, sentence_gloVe_vectors)
+            best_sentence = self.cosine_similarity_score(question_vector_2d, sentence_vectors, original_sentences)
             results[key] = best_sentence
         
         return results
 
-    def cosine_similarity_score(self, question_gloVe_vector, sentence_gloVe_vectors) -> str:
-        """Uses SpaCy's built-in cosine similarity to select the sentence that best answers each question."""
+    def cosine_similarity_score(self, question_vector, sentence_vectors, sentences) -> str:
+        """Uses sklearn cosine similarity to select the sentence that best answers each question."""
 
-        best_score = 0.0
-        best_sentence = "A possible valid answer wasn't found"
-
-        for original_sentence, sentence_doc in sentence_gloVe_vectors:
-            
-            score = question_gloVe_vector.similarity(sentence_doc)
-            
-            if score > best_score:
-                best_score = score
-                best_sentence = original_sentence
+        similarities = cosine_similarity(question_vector, sentence_vectors)
+        best_index = np.argmax(similarities)
         
-        return best_sentence
+        return sentences[best_index]
