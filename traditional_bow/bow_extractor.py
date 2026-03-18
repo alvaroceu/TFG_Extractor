@@ -20,13 +20,10 @@ class BoWExtractor(ExtractorBase):
         
         # Build BoW vectors of sentences and questions
         vectorizer = CountVectorizer()
-        bow_matrix = vectorizer.fit_transform(sentences_tokens + questions_tokens)
+        vectorizer.fit(sentences_tokens)
 
-        N = len(sentences_tokens)
-        #First N rows --> BoW vectors of sentences
-        sentences_bow = bow_matrix[:N]
-        #Remaining rows --> TF-IDF vectors of questions
-        questions_bow = bow_matrix[N:]
+        sentences_bow = vectorizer.transform(sentences_tokens)
+        questions_bow = vectorizer.transform(questions_tokens)
 
         for index, (column, _) in enumerate(bags_of_words.items()):
             best_sentence = self.cosine_similarity_score(questions_bow[index], sentences_bow,original_sentences)

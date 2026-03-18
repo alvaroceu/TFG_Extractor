@@ -20,13 +20,10 @@ class TfidfExtractor(ExtractorBase):
 
         # Build TF-IDF of sentences and questions
         vectorizer = TfidfVectorizer()
-        tfidf_matrix = vectorizer.fit_transform(sentences_tokens + questions_tokens)
+        vectorizer.fit(sentences_tokens)
 
-        N = len(sentences_tokens)
-        #First N rows --> TF-IDF vectors of sentences
-        sentences_tfidf = tfidf_matrix[:N]
-        #Remaining rows --< TF-IDF vectors of questions
-        questions_tfidf = tfidf_matrix[N:]
+        sentences_tfidf = vectorizer.transform(sentences_tokens)
+        questions_tfidf = vectorizer.transform(questions_tokens)
 
         for index, (column, _) in enumerate(bags_of_words.items()):
             best_sentence = self.cosine_similarity_score(questions_tfidf[index], sentences_tfidf,original_sentences)
