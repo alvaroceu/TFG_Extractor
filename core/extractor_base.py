@@ -1,32 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
-import time
-import torch
+from typing import Tuple, Dict
 
 class ExtractorBase(ABC):
 
     @abstractmethod
-    def extract(self, text: str, questions: str):
-        """Extract relevant information from text for each column/question."""
+    def extract(self, text: str, questions: str) -> Tuple[Dict[str, str], Dict[str, float]]:
+        """Extract relevant information from text for each column/question.
+        
+        Returns:
+            results: Dict mapping question keys to answers
+            times: Dict mapping question keys to execution times"""
         pass
-    
-    def timed_extract(self, text: str, questions: str):
-        """Extract relevant information from text for each column/question. Includes computation time"""
-        
-        # Sync if GPU is being used
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-            
-        start_time = time.perf_counter()
-
-        results = self.extract(text, questions)
-
-        # Sync if GPU is being used
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-            
-        end_time = time.perf_counter()
-
-        execution_time = end_time - start_time
-        
-        return results, execution_time
