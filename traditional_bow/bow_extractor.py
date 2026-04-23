@@ -3,13 +3,16 @@ from core.preprocessing import preprocess, preprocess_questions
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import CountVectorizer
 import numpy as np
+from typing import Tuple, Dict
+import time
 
 class BoWExtractor(ExtractorBase):
 
-    def extract(self, text: str, questions: str):
+    def extract(self, text: str, questions: str) -> Tuple[Dict[str, str], Dict[str, float]]:
         """Extract relevant information from text for each column."""
         
         results = {}
+        times = {}
 
         preprocessed_sentences = preprocess(text)
         bags_of_words = preprocess_questions(questions)
@@ -26,10 +29,13 @@ class BoWExtractor(ExtractorBase):
         questions_bow = vectorizer.transform(questions_tokens)
 
         for index, (column, _) in enumerate(bags_of_words.items()):
+            start_time = time.perf_counter()
             best_sentence = self.cosine_similarity_score(questions_bow[index], sentences_bow,original_sentences)
+            times[column] = time.perf_counter() - start_time
+            
             results[column] = best_sentence
 
-        return results
+        return results, times
 
     def cosine_similarity_score(self, question_bow, sentences_bow, sentences) -> str:
         """Uses cosine similarity to select the sentence that best answers each question"""
