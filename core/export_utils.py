@@ -3,40 +3,19 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
 
-def export_predictions_to_excel(all_predictions, all_references, excel_name="resultados_textos.xlsx"):
+def export_results_to_excel(master_data: list, excel_name="resultados_totales.xlsx"):
     """
-    Exporta las respuestas de texto. 
-    Filas: Cada una de las preguntas de todos los contextos.
-    Columnas: Ground Truth y los Modelos.
+    Exports the complete dataset of rows directly to the requested Excel format.
     """
-    # Construimos el diccionario base para el DataFrame
-    data = {
-        "Ground Truth": all_references
-    }
-    # Añadimos las listas de predicciones de cada modelo
-    data.update(all_predictions)
-
-    # Convertimos a DataFrame
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(master_data)
     
-    # Exportamos a Excel
-    df.to_excel(excel_name, index=False)
-    
-    # Aplicar tu formato bonito de autoajuste
-    _format_excel(excel_name)
-
-def export_metrics_to_excel(all_metrics, excel_name="resultados_metricas.xlsx"):
-    """
-    Exporta las notas matemáticas.
-    Filas: Modelos (BoW, BERT, etc.)
-    Columnas: Las métricas (Exact Match, Falsos Positivos, etc.)
-    """
-    # Convertimos el diccionario de métricas a DataFrame (orient='index' pone las claves principales como filas)
-    df = pd.DataFrame.from_dict(all_metrics, orient='index')
-    
-    # Reseteamos el índice para que los nombres de los modelos sean una columna
-    df.reset_index(inplace=True)
-    df.rename(columns={'index': 'Modelo'}, inplace=True)
+    # Reordenamos las columnas por seguridad para asegurar el formato pedido
+    cols_order = [
+        "Question ID", "Dataset", "Context", "Question", "Ground Truth", 
+        "Model", "Answer", "ExecTime", "Status", "ExactMatch", 
+        "InclusionMatch", "ROUGE_L", "BERTScore"
+    ]
+    df = df[cols_order]
     
     df.to_excel(excel_name, index=False)
     _format_excel(excel_name)
