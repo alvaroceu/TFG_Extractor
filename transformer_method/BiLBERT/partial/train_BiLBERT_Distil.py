@@ -9,7 +9,7 @@ import os
 
 # Import the architecture you just created
 # Adjust the import path based on where your file is located
-from arq_BiLBERT_Large import BiLBERTLarge
+from transformer_method.BiLBERT.arq_BiLBERT_Distil import BiLBERTDistil
 
 def prepare_train_features(examples, tokenizer):
     """
@@ -81,7 +81,7 @@ def prepare_train_features(examples, tokenizer):
 
 def main():
     # 1. Configuration
-    model_name = 'deepset/bert-large-uncased-whole-word-masking-squad2'
+    model_name = 'twmkn9/distilbert-base-uncased-squad2'
     batch_size = 16
     epochs = 2 # 2 epochs is usually enough for a QA head
     learning_rate = 5e-5
@@ -91,7 +91,11 @@ def main():
 
     # 2. Load Tokenizer and Model
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = BiLBERTLarge(model_name=model_name).to(device)
+    model = BiLBERTDistil(model_name=model_name).to(device)
+
+    # Freeze original weights
+    for param in model.distilbert.parameters():
+        param.requires_grad = False
 
     # 3. Load and Preprocess SQuAD 2.0 Dataset
     print("📥 Downloading and preprocessing SQuAD 2.0...")
@@ -135,7 +139,6 @@ def main():
             # Move batch tensors to GPU
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            token_type_ids = batch["token_type_ids"].to(device)
             start_positions = batch["start_positions"].to(device)
             end_positions = batch["end_positions"].to(device)
 
@@ -143,7 +146,7 @@ def main():
             optimizer.zero_grad()
 
             # Forward pass: Get predictions from your custom architecture
-            start_logits, end_logits = model(input_ids, attention_mask, token_type_ids)
+            start_logits, end_logits = model(input_ids, attention_mask)
 
             # Calculate Loss (Error)
             # We add the loss of the start prediction and the end prediction
@@ -164,8 +167,8 @@ def main():
         print(f"✅ Epoch {epoch + 1} finished. Average Loss: {avg_loss:.4f}")
 
     # 6. Save the trained model
-    os.makedirs("trained_models", exist_ok=True)
-    save_path = "trained_models/bilbert_large_qa_weights.pth"
+    os.makedirs("trained_models/partial", exist_ok=True)
+    save_path = "trained_models/partial/bilbert_distil_qa_weights.pth"
     print(f"💾 Saving trained model to {save_path}...")
     torch.save(model.state_dict(), save_path)
     print("🎉 Training Complete!")

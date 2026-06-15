@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 from datasets import load_dataset
 from torch.optim import AdamW
 from tqdm import tqdm
@@ -9,7 +9,7 @@ import os
 
 # Import the architecture you just created
 # Adjust the import path based on where your file is located
-from .arq_BiLBERT_Distil import BiLBERTDistil
+from transformer_method.BiLBERT.arq_BiLBERT_Large import BiLBERTLarge
 
 def prepare_train_features(examples, tokenizer):
     """
@@ -81,17 +81,16 @@ def prepare_train_features(examples, tokenizer):
 
 def main():
     # 1. Configuration
-    model_name = 'twmkn9/distilbert-base-uncased-squad2'
+    model_name = 'deepset/bert-large-uncased-whole-word-masking-squad2'
     batch_size = 16
-    epochs = 2 # 2 epochs is usually enough for a QA head
-    learning_rate = 5e-5
+    epochs = 3 # 2 epochs is usually enough for a QA head
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-    print(f"🚀 Initializing training on: {device}")
 
     # 2. Load Tokenizer and Model
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = BiLBERTDistil(model_name=model_name).to(device)
+    model = BiLBERTLarge(model_name=model_name).to(device)
+
+    print(f"🚀 Initializing training on: {device}")
 
     # 3. Load and Preprocess SQuAD 2.0 Dataset
     print("📥 Downloading and preprocessing SQuAD 2.0...")
@@ -111,50 +110,77 @@ def main():
     
     # Create the DataLoader to feed data in batches
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
-
-    # 4. Setup Optimizer and Loss Function
-    # We only pass the LSTM and QA output parameters to the optimizer 
-    # because DistilBert is frozen in your architecture.
-    optimizer = AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=learning_rate)
     
     # CrossEntropyLoss is perfect here because we are classifying WHICH token is the start/end
     loss_fn = nn.CrossEntropyLoss()
 
-    # 5. Training Loop
     print("🔥 Starting training...")
-    model.train()
     
+    # 5. Training Loop
     for epoch in range(epochs):
         print(f"\n--- Epoch {epoch + 1} / {epochs} ---")
-        total_loss = 0
         
-        # tqdm creates a nice progress bar
+        # -------------------------------------------------------------------
+        # NUEVO: LÓGICA DE DESCONGELAMIENTO GRADUAL Y SCHEDULER
+        # -------------------------------------------------------------------
+        if epoch == 0:
+            # ÉPOCA 1: Congelamos BERT. Entrenamos solo la LSTM
+            print("🧊 FASE 1: BERT Congelado. Entrenando capas nuevas...")
+            for param in model.bert.parameters():
+                param.requires_grad = False
+            
+            optimizer = AdamW([
+                {"params": model.lstm.parameters(), "lr": 5e-4},
+                {"params": model.qa_outputs.parameters(), "lr": 5e-4}
+            ])
+            
+            total_steps = len(train_dataloader)
+            scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps)
+            
+        elif epoch == 1: 
+            # ÉPOCA 2 y 3: Descongelamos BERT. Entrenamos todo junto
+            print("🔥 FASE 2: BERT Descongelado. Fine-tuning conjunto...")
+            for param in model.bert.parameters():
+                param.requires_grad = True
+            
+            optimizer = AdamW([
+                {"params": model.bert.parameters(), "lr": 1e-5}, # LR ultra conservador para BERT
+                {"params": model.lstm.parameters(), "lr": 1e-4},
+                {"params": model.qa_outputs.parameters(), "lr": 1e-4}
+            ])
+            
+            total_steps = len(train_dataloader) * (epochs - 1)
+            scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps)
+        # -------------------------------------------------------------------
+
+        model.train()
+        total_loss = 0
         progress_bar = tqdm(train_dataloader, desc="Training")
         
         for batch in progress_bar:
-            # Move batch tensors to GPU
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
+            token_type_ids = batch["token_type_ids"].to(device)
             start_positions = batch["start_positions"].to(device)
             end_positions = batch["end_positions"].to(device)
 
-            # Clear previous gradients
             optimizer.zero_grad()
 
-            # Forward pass: Get predictions from your custom architecture
-            start_logits, end_logits = model(input_ids, attention_mask)
+            start_logits, end_logits = model(input_ids, attention_mask, token_type_ids)
 
-            # Calculate Loss (Error)
-            # We add the loss of the start prediction and the end prediction
             start_loss = loss_fn(start_logits, start_positions)
             end_loss = loss_fn(end_logits, end_positions)
             total_batch_loss = (start_loss + end_loss) / 2
 
-            # Backward pass: Calculate gradients
             total_batch_loss.backward()
 
-            # Optimize: Update the LSTM weights
+            # NUEVO: CINTURÓN DE SEGURIDAD (Gradient Clipping)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
             optimizer.step()
+            
+            # NUEVO: Avanzar el scheduler
+            scheduler.step()
 
             total_loss += total_batch_loss.item()
             progress_bar.set_postfix({"loss": total_batch_loss.item()})
@@ -162,9 +188,8 @@ def main():
         avg_loss = total_loss / len(train_dataloader)
         print(f"✅ Epoch {epoch + 1} finished. Average Loss: {avg_loss:.4f}")
 
-    # 6. Save the trained model
-    os.makedirs("trained_models", exist_ok=True)
-    save_path = "trained_models/bilbert_distil_qa_weights.pth"
+    os.makedirs("trained_models/complete", exist_ok=True)
+    save_path = "trained_models/complete/bilbert_large_qa_weights.pth"
     print(f"💾 Saving trained model to {save_path}...")
     torch.save(model.state_dict(), save_path)
     print("🎉 Training Complete!")
