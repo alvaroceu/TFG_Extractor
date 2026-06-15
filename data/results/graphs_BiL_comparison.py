@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.patches as mpatches
 import matplotlib.collections as mcollections
 
-# Orden para el estudio de ablación
 MODEL_ORDER = [
     'BiLBERT-Distil (Congelado)', 
     'BiLBERT-Distil (Completo)', 
@@ -14,15 +13,14 @@ MODEL_ORDER = [
     'BiLBERT-Large (Completo)'
 ]
 
-# Usamos tonos claros para Congelado y oscuros (originales) para Completo
+# Colors
 COLORS = {
-    'BiLBERT-Distil (Congelado)': '#aec7e8', # Azul claro
-    'BiLBERT-Distil (Completo)': '#1f77b4',  # Azul oscuro
-    'BiLBERT-Large (Congelado)': '#ff9896',  # Rojo claro
-    'BiLBERT-Large (Completo)': '#d62728'    # Rojo oscuro
+    'BiLBERT-Distil (Congelado)': '#aec7e8', 
+    'BiLBERT-Distil (Completo)': '#1f77b4',  
+    'BiLBERT-Large (Congelado)': '#ff9896',  
+    'BiLBERT-Large (Completo)': '#d62728'   
 }
 
-# Mantenemos las cruces para indicar que son la arquitectura BiL
 HATCHES = {
     'BiLBERT-Distil (Congelado)': 'xx',
     'BiLBERT-Distil (Completo)': 'xx',
@@ -68,11 +66,10 @@ def apply_hatches_to_axes(ax, plot_data, plot_type='box'):
                     col.set_hatch(hatch)
 
 def load_ablation_data(completo_filepath, congelado_filepath):
-    print("Cargando datos para Estudio de Ablación...")
+    print("Loading data")
     df_comp = pd.read_excel(completo_filepath)
     df_cong = pd.read_excel(congelado_filepath)
     
-    # Nombres originales en el Excel
     rename_dict = {
         'Transformer BiLBERTDistil': 'BiLBERT-Distil',
         'Transformer BiLBERTLarge': 'BiLBERT-Large',
@@ -81,11 +78,10 @@ def load_ablation_data(completo_filepath, congelado_filepath):
     df_comp['Model'] = df_comp['Model'].replace(rename_dict)
     df_cong['Model'] = df_cong['Model'].replace(rename_dict)
     
-    # Filtrar solo los BiL
+    # Filter BiL models
     df_comp_bil = df_comp[df_comp['Model'].isin(['BiLBERT-Distil', 'BiLBERT-Large'])].copy()
     df_cong_bil = df_cong[df_cong['Model'].isin(['BiLBERT-Distil', 'BiLBERT-Large'])].copy()
     
-    # Añadir sufijos
     df_comp_bil['Model'] = df_comp_bil['Model'] + ' (Completo)'
     df_cong_bil['Model'] = df_cong_bil['Model'] + ' (Congelado)'
     
@@ -378,7 +374,7 @@ def main():
     output_directory = os.path.join(script_dir, 'exported_BiL_comparison')
     
     if not os.path.exists(completo_file) or not os.path.exists(congelado_file):
-        print("Error: No se encontraron los archivos Excel necesarios para el estudio de ablación.")
+        print("Error: Files not found")
         return
 
     df = load_ablation_data(completo_file, congelado_file)
@@ -390,7 +386,7 @@ def main():
     create_time_summary_table(df, output_directory)
     create_distribution_plots(df, output_directory, models_to_plot=MODEL_ORDER)
     
-    print(f"\n¡Proceso completado! Revisa la carpeta '{output_directory}'.")
+    print(f"\nGraphs and tables saved in: '{output_directory}'.")
 
 if __name__ == "__main__":
     main()

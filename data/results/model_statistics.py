@@ -6,7 +6,6 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import warnings
 
-# Suprimimos los avisos de Wilcoxon sobre empates (normales en ExactMatch)
 warnings.filterwarnings("ignore")
 
 PAIRS_TO_COMPARE = [
@@ -24,7 +23,7 @@ DATASET_ORDER = ['SQuAD 2.0', 'NewsQA', 'Natural Questions', 'TriviaQA']
 LETTERS = ['a)', 'b)', 'c)', 'd)']
 
 def load_and_combine_data(hist_filepath, new_filepath):
-    print(f"Cargando datos desde Excel...")
+    print(f"Loading data")
     df_hist = pd.read_excel(hist_filepath)
     df_new = pd.read_excel(new_filepath)
     
@@ -50,7 +49,7 @@ def safe_to_numeric(series):
     return pd.to_numeric(series, errors='coerce')
 
 def run_tests_and_qqplots(df, output_dir):
-    print("Iniciando análisis estadístico (Wilcoxon) y recolección de datos para Q-Q Plots...")
+    print("Starting statistical analysis (Wilcoxon) and data collection for Q-Q Plots...")
     datasets = df['Dataset'].unique()
     scopes = ['Global', 'TP']
     
@@ -71,9 +70,7 @@ def run_tests_and_qqplots(df, output_dir):
                 if scope == 'TP' and metric == 'ExecTime':
                     continue
 
-                # =========================================================
-                # FASE 1: EVALUACIÓN DE NORMALIDAD (R^2)
-                # =========================================================
+                # Normal distribution?
                 normality_cache = {}
                 
                 for model in all_models_in_pairs:
@@ -97,9 +94,7 @@ def run_tests_and_qqplots(df, output_dir):
                     else:
                         normality_cache[model] = np.nan
 
-                # =========================================================
-                # FASE 2: PRUEBA DE WILCOXON SIEMPRE
-                # =========================================================
+                # Wilcoxon (distributions are not normal)
                 for model_a, model_b in PAIRS_TO_COMPARE:
                     df_a = df_dataset[df_dataset['Model'] == model_a][['Question ID', 'Status', metric]]
                     df_b = df_dataset[df_dataset['Model'] == model_b][['Question ID', 'Status', metric]]
@@ -155,13 +150,10 @@ def run_tests_and_qqplots(df, output_dir):
                             'Significativo (p<0.05)': 'Sí' if pd.notna(p_val) and p_val < 0.05 else 'No'
                         })
 
-    # =========================================================
-    # FASE 3: GENERACIÓN DE MATRICES 1x4 PARA Q-Q PLOTS
-    # =========================================================
-    print("Generando matrices 1x4 de Q-Q Plots...")
+    # Q-Q Plots
+    print("Generating 1x4 matrices for Q-Q Plots...")
     for metric in METRICS:
         for model in all_models_in_pairs:
-            # Crear figura con 1 fila y 4 columnas (formato horizontal)
             fig, axes = plt.subplots(1, 4, figsize=(20, 5))
             axes = axes.flatten() 
             
@@ -199,10 +191,8 @@ def run_tests_and_qqplots(df, output_dir):
     ]
     results_df = results_df[cols]
 
-    # =========================================================
-    # FASE 4: CREACIÓN DE LA TABLA RESUMEN DE EFECTOS
-    # =========================================================
-    print("Generando tabla resumen de tamaños de efecto...")
+    # Summary table
+    print("Summary table of effect sizes")
     summary_records = []
     
     metric_mapping = [
@@ -217,7 +207,6 @@ def run_tests_and_qqplots(df, output_dir):
         record = {'Par': f"{model_a} vs {model_b}"}
         
         for metric_internal, metric_display in metric_mapping:
-            # Filtrar todas las ocurrencias de esta pareja y métrica
             mask = (results_df['Modelo A'] == model_a) & \
                    (results_df['Modelo B'] == model_b) & \
                    (results_df['Metrica'] == metric_internal)
@@ -231,25 +220,22 @@ def run_tests_and_qqplots(df, output_dir):
                 min_r = r_values.min()
                 max_r = r_values.max()
                 
-                # Formatear el rango con comas para español
                 if np.isclose(min_r, max_r):
                     record[metric_display] = f"{min_r:.2f}".replace('.', ',')
                 else:
                     record[metric_display] = f"{min_r:.2f} - {max_r:.2f}".replace('.', ',')
                     
-        record['Efecto'] = ""  # Columna vacía para rellenar manualmente
+        record['Efecto'] = ""  
         summary_records.append(record)
 
     summary_df = pd.DataFrame(summary_records)
 
-    # GUARDADO EN EXCEL
+    # Save
     excel_path = os.path.join(output_dir, 'estadisticas_wilcoxon_qqplots.xlsx')
     
     with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-        # 1. Guardar primero la pestaña de Resumen
         summary_df.to_excel(writer, sheet_name="Resumen_Efectos", index=False)
         
-        # 2. Guardar el resto de pestañas de datasets
         for dataset in datasets:
             for scope in scopes:
                 slice_df = results_df[(results_df['Dataset'] == dataset) & (results_df['Caso'] == scope)].copy()
@@ -257,8 +243,8 @@ def run_tests_and_qqplots(df, output_dir):
                     sheet_name = f"{dataset[:20]} - {scope}"
                     slice_df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    print(f"-> ¡Éxito! Excel generado en: '{excel_path}' (Incluye pestaña 'Resumen_Efectos')")
-    print(f"-> Matrices Q-Q Plots guardadas en: '{qq_dir}'")
+    print(f"-> Excel saved in: '{excel_path}'")
+    print(f"-> Q-Q plots saved in: '{qq_dir}'")
     return results_df
 
 def main():
@@ -268,7 +254,7 @@ def main():
     output_directory = os.path.join(script_dir, 'exported_results_mymodels', 'statistics')
     
     if not os.path.exists(hist_file) or not os.path.exists(new_file):
-        print("Error: No se encontraron los archivos Excel.")
+        print("Error: Files not found.")
         return
 
     df = load_and_combine_data(hist_file, new_file)

@@ -6,10 +6,9 @@ from autorank import autorank
 import warnings
 import matplotlib.lines as mlines
 
-# Ignorar advertencias de Friedman cuando los datos tienen empates
 warnings.filterwarnings("ignore")
 
-# DICCIONARIO FIJO DE ESTILOS: Color (Familia) + Linestyle/Marker (Arquitectura)
+# Colors
 STYLE_MAP = {
     'DistilBERT':                 {'color': '#1f77b4', 'ls': '-',  'marker': 'o'},
     'SparseDistilBERT':           {'color': '#1f77b4', 'ls': '--', 'marker': 's'},
@@ -21,8 +20,7 @@ STYLE_MAP = {
     'BiLBERT-Large (Congelado)':  {'color': '#d62728', 'ls': '-.', 'marker': '^'},
 }
 
-def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
-    # Ordenados de mejor a peor (de izquierda a derecha en el eje)
+def draw_cd_diagram_on_ax(ranks, cd, ax, title):
     ranks = ranks.sort_values()
     models = ranks.index.tolist()
     n_models = len(models)
@@ -32,7 +30,6 @@ def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
     drange = actual_max - actual_min
     if drange == 0: drange = 1.0
     
-    # Zoom en las marcas del eje (0.1, 0.2, etc.)
     if drange <= 1.0:
         step = 0.1
     elif drange <= 2.0:
@@ -48,7 +45,7 @@ def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
     axis_start = low_tick - (step * 0.1)
     axis_end = high_tick + (step * 0.1)
     
-    # Dibujar eje principal
+    # Axis
     ax.plot([axis_start, axis_end], [0, 0], color='k', lw=1.5)
     
     for tick in np.arange(low_tick, high_tick + (step/2), step):
@@ -73,7 +70,7 @@ def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
         if not is_subset:
             max_cliques.append(c)
             
-    # Líneas negras
+    # Black lines (not significant differences)
     clique_y_start = -0.15
     clique_step = 0.1
     for idx, (start_idx, end_idx) in enumerate(max_cliques):
@@ -87,13 +84,9 @@ def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
         
     min_clique_y = clique_y_start - (len(max_cliques) * clique_step)
     
-    # ========================================================
-    # TU SOLUCIÓN: CASCADA PURA HACIA LA IZQUIERDA
-    # ========================================================
     line_y_start = min_clique_y - 0.25
     y_step = 0.35 
     
-    # Todos los modelos irán a esta coordenada X (a la izquierda del eje)
     text_margin = max(drange * 0.1, 0.2)
     x_target = axis_start - text_margin
     
@@ -110,23 +103,18 @@ def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
         y_drop = line_y_start - (i * y_step)
         min_y_pos = min(min_y_pos, y_drop)
         
-        # Caída vertical
         ax.plot([rank, rank], [0, y_drop], color=c, lw=2.5, linestyle=ls)
         
-        # Línea horizontal SIEMPRE hacia la izquierda (x_target)
         ax.plot([rank, x_target], [y_drop, y_drop], color=c, lw=2.5, linestyle=ls)
         
-        # Texto a la izquierda de la línea, alineado a la derecha (ha='right')
         offset = max(drange * 0.02, 0.05)
         ax.text(x_target - offset, y_drop, f"{model} ({rank:.2f})",
-                ha='right', va='center', color=c, fontsize=13, fontweight='bold', # FUENTE REDUCIDA A 13
+                ha='right', va='center', color=c, fontsize=13, fontweight='bold', 
                 bbox=dict(facecolor='white', edgecolor='none', alpha=0.9, pad=3), zorder=5)
                 
     ax.set_title(title, fontsize=18, fontweight='bold', pad=20)
     ax.axis('off')
     
-    # LÍMITES DE LA CÁMARA (ZOOM)
-    # Reducimos el margen izquierdo para que el texto ocupe ~30% y el eje el ~70%
     margin_text = max(drange * 0.3, 1.2) 
     ax.set_xlim(axis_start - margin_text, axis_end + max(drange * 0.05, 0.1))
     
@@ -134,7 +122,7 @@ def draw_beautiful_cd_diagram_on_ax(ranks, cd, ax, title):
     ax.set_ylim(min_y_pos - 0.2, top_y)
 
 def main():
-    print("Iniciando generación de CD-Diagrams (2x2) ULTRAWIDE con estilos fijos...")
+    print("Generating cd diagrams...")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
     hist_file = os.path.join(script_dir, 'tfg_results.xlsx')
@@ -146,7 +134,7 @@ def main():
     os.makedirs(cd_dir, exist_ok=True)
     
     if not os.path.exists(hist_file) or not os.path.exists(new_file) or not os.path.exists(cong_file):
-        print("Error: No se encontraron los archivos Excel necesarios.")
+        print("Error: Files not found")
         return
 
     df_hist = pd.read_excel(hist_file)
@@ -183,7 +171,7 @@ def main():
     letters = ['a)', 'b)', 'c)', 'd)']
     
     for metric in metrics:
-        print(f"Procesando métrica: {metric}...")
+        print(f"Processing metric: {metric}...")
         
         fig, axes = plt.subplots(2, 2, figsize=(22, 14))
         axes = axes.flatten()
@@ -212,7 +200,7 @@ def main():
                 
             try:
                 result = autorank(df_pivot, alpha=0.05, verbose=False, order=sort_order)
-                draw_beautiful_cd_diagram_on_ax(result.rankdf['meanrank'], result.cd, ax, title)
+                draw_cd_diagram_on_ax(result.rankdf['meanrank'], result.cd, ax, title)
             except Exception as e:
                 ax.axis('off')
                 ax.set_title(f"{title}\n(Error al converger)", fontsize=14)
@@ -221,22 +209,17 @@ def main():
         legend_handles = []
         for model_name in model_list:
             style = STYLE_MAP.get(model_name, {'color': 'black', 'ls': '-', 'marker': 'o'})
-            # Creamos un elemento visual de "línea" para representarlo en la leyenda
             handle = mlines.Line2D([], [], color=style['color'], linestyle=style['ls'], 
                                    marker=style['marker'], markersize=10, linewidth=2.5, 
                                    label=model_name)
             legend_handles.append(handle)
             
-        # Añadimos la leyenda al Figure global ( ncol=4 para 2 filas x 4 columnas fijos)
         fig.legend(handles=legend_handles, loc='lower center', ncol=4, fontsize=14, 
                    bbox_to_anchor=(0.5, 0.01), frameon=True, 
                    title="Codificación de Modelos fijos (Color = Familia Base | Trazo/Marcador = Arquitectura)", title_fontsize=16)
 
-       # 1. Ajustamos rect para dejar el 12% inferior de la pantalla para la leyenda
         plt.tight_layout(rect=[0, 0.12, 1, 0.95])
         
-        # 2. SEPARACIÓN LATERAL DINÁMICA
-        # Si es la gráfica de Tiempos (rango numérico ancho), separamos las columnas. Si no, las pegamos.
         current_wspace = 0.35 if metric == 'ExecTime' else 0.1
         plt.subplots_adjust(wspace=current_wspace, hspace=0.3)
         
@@ -244,7 +227,7 @@ def main():
         plt.savefig(os.path.join(cd_dir, filename), dpi=300, bbox_inches='tight')
         plt.close()
 
-    print(f"\n¡Éxito! Todas las matrices 2x2 de CD-Diagrams se han guardado en '{cd_dir}'.")
+    print(f"\nCd diagrams saved in: '{cd_dir}'.")
 
 if __name__ == "__main__":
     main()

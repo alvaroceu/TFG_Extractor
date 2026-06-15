@@ -9,10 +9,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    print("Iniciando generación de Heatmaps de Tiempos y Efecto (Wilcoxon r)...")
+    print("Generating heatmaps")
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 1. Cargar datos raw
+    # load data
     hist_file = os.path.join(script_dir, 'tfg_results.xlsx')
     new_file = os.path.join(script_dir, 'tfg_results_mymodels.xlsx')
     cong_file = os.path.join(script_dir, 'tfg_results_mymodels_congelado.xlsx')
@@ -49,7 +49,6 @@ def main():
         df_all['ExecTime'] = df_all['ExecTime'].astype(str).str.replace(',', '.')
     df_all['ExecTime'] = pd.to_numeric(df_all['ExecTime'], errors='coerce')
     
-    # Matrices para Heatmaps
     mean_times_df = pd.DataFrame(index=model_list, columns=datasets)
     r_wilcoxon_df = pd.DataFrame(index=model_list, columns=datasets)
     
@@ -59,13 +58,13 @@ def main():
         for m1 in model_list:
             df_m1 = df_ds[df_ds['Model'] == m1][['Question ID', 'ExecTime']].dropna()
             
-            # Tiempo Medio
+            # mean time
             if len(df_m1) > 0:
                 mean_times_df.loc[m1, dataset] = df_m1['ExecTime'].mean()
             else:
                 mean_times_df.loc[m1, dataset] = np.nan
                 
-            # r de Wilcoxon Medio (Todos contra todos, pareado por Question ID)
+            # Wilcoxon r effect
             r_values = []
             for m2 in model_list:
                 if m1 != m2:
@@ -76,7 +75,6 @@ def main():
                         data_a = merged['ExecTime_x'].values
                         data_b = merged['ExecTime_y'].values
                         try:
-                            # MISMA LÓGICA EXACTA QUE TU SCRIPT DE STATISTICS
                             res = stats.wilcoxon(data_a, data_b, alternative='two-sided', method='approx')
                             effect_size_r = abs(res.zstatistic) / np.sqrt(len(data_a))
                             r_values.append(effect_size_r)
@@ -91,14 +89,11 @@ def main():
     mean_times_df = mean_times_df.astype(float)
     r_wilcoxon_df = r_wilcoxon_df.astype(float)
 
-    # ==========================================
-    # 3. DIBUJAR LOS HEATMAPS 
-    # ==========================================
     fig, axes = plt.subplots(1, 2, figsize=(18, 7))
     fig.suptitle('Análisis de Tiempos de Ejecución: Medias vs. Magnitud del Efecto Global', 
                  fontsize=22, fontweight='bold', y=1.02)
     
-    # Heatmap 1: Tiempos Medios (Sin texto en la barra lateral)
+    # Heatmap 1: Mean times
     sns.heatmap(mean_times_df, ax=axes[0], annot=True, fmt=".4f", 
                 cmap="RdYlGn_r", cbar_kws={'label': ''}, linewidths=.5,
                 annot_kws={"size": 14, "weight": "bold"})
@@ -109,7 +104,7 @@ def main():
     axes[0].tick_params(axis='y', rotation=0, labelsize=14) 
     axes[0].tick_params(axis='x', labelsize=14)
     
-    # Heatmap 2: Efecto r medio (Wilcoxon) (Sin texto en la barra lateral)
+    # Heatmap 2: Wilcoxon r effect
     sns.heatmap(r_wilcoxon_df, ax=axes[1], annot=True, fmt=".3f", 
                 cmap="Oranges", cbar_kws={'label': ''}, linewidths=.5,
                 annot_kws={"size": 14, "weight": "bold"})
@@ -121,14 +116,13 @@ def main():
     axes[1].tick_params(axis='x', labelsize=14)
     
     plt.tight_layout()
-    # Separamos un poquito los dos heatmaps (wspace controla el margen horizontal)
     plt.subplots_adjust(wspace=0.1)
     
     filename = os.path.join(output_dir, 'heatmap_comparativa_tiempos.png')
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"¡Éxito! El heatmap se ha guardado en '{filename}'.")
+    print(f"Heatmap saved in '{filename}'.")
 
 if __name__ == "__main__":
     main()
