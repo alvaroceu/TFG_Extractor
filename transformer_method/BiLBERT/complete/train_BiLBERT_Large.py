@@ -90,10 +90,10 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = BiLBERTLarge(model_name=model_name).to(device)
 
-    print(f"🚀 Initializing training on: {device}")
+    print(f"Initializing training on: {device}")
 
     # 3. Load and Preprocess SQuAD 2.0 Dataset
-    print("📥 Downloading and preprocessing SQuAD 2.0...")
+    print("Downloading and preprocessing SQuAD 2.0...")
     # We use the HF datasets library to get the raw SQuAD v2
     datasets = load_dataset("squad_v2")
     
@@ -114,18 +114,16 @@ def main():
     # CrossEntropyLoss is perfect here because we are classifying WHICH token is the start/end
     loss_fn = nn.CrossEntropyLoss()
 
-    print("🔥 Starting training...")
+    print("Starting training...")
     
     # 5. Training Loop
     for epoch in range(epochs):
         print(f"\n--- Epoch {epoch + 1} / {epochs} ---")
         
-        # -------------------------------------------------------------------
-        # NUEVO: LÓGICA DE DESCONGELAMIENTO GRADUAL Y SCHEDULER
-        # -------------------------------------------------------------------
+        # Gradual Unfreezing
         if epoch == 0:
-            # ÉPOCA 1: Congelamos BERT. Entrenamos solo la LSTM
-            print("🧊 FASE 1: BERT Congelado. Entrenando capas nuevas...")
+            # EPOCH 1: BERT is frozen. Only train the new layer
+            print("1: Frozen BERT")
             for param in model.bert.parameters():
                 param.requires_grad = False
             
@@ -138,20 +136,20 @@ def main():
             scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps)
             
         elif epoch == 1: 
-            # ÉPOCA 2 y 3: Descongelamos BERT. Entrenamos todo junto
-            print("🔥 FASE 2: BERT Descongelado. Fine-tuning conjunto...")
+            # EPOCH 2, 3: Unfreeze BERT. Train everything together
+            print("2: Unfrozen BERT")
             for param in model.bert.parameters():
                 param.requires_grad = True
             
+            # Differential learning rates
             optimizer = AdamW([
-                {"params": model.bert.parameters(), "lr": 1e-5}, # LR ultra conservador para BERT
+                {"params": model.bert.parameters(), "lr": 1e-5}, 
                 {"params": model.lstm.parameters(), "lr": 1e-4},
                 {"params": model.qa_outputs.parameters(), "lr": 1e-4}
             ])
             
             total_steps = len(train_dataloader) * (epochs - 1)
             scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(total_steps * 0.1), num_training_steps=total_steps)
-        # -------------------------------------------------------------------
 
         model.train()
         total_loss = 0
@@ -174,25 +172,24 @@ def main():
 
             total_batch_loss.backward()
 
-            # NUEVO: CINTURÓN DE SEGURIDAD (Gradient Clipping)
+            # Gradient clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             optimizer.step()
             
-            # NUEVO: Avanzar el scheduler
             scheduler.step()
 
             total_loss += total_batch_loss.item()
             progress_bar.set_postfix({"loss": total_batch_loss.item()})
 
         avg_loss = total_loss / len(train_dataloader)
-        print(f"✅ Epoch {epoch + 1} finished. Average Loss: {avg_loss:.4f}")
+        print(f"Epoch {epoch + 1} finished. Average Loss: {avg_loss:.4f}")
 
     os.makedirs("trained_models/complete", exist_ok=True)
     save_path = "trained_models/complete/bilbert_large_qa_weights.pth"
-    print(f"💾 Saving trained model to {save_path}...")
+    print(f"Saving trained model to {save_path}...")
     torch.save(model.state_dict(), save_path)
-    print("🎉 Training Complete!")
+    print("Training Complete!")
 
 if __name__ == "__main__":
     main()

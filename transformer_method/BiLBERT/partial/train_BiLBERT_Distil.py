@@ -87,7 +87,7 @@ def main():
     learning_rate = 5e-5
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    print(f"🚀 Initializing training on: {device}")
+    print(f"Initializing training on: {device}")
 
     # 2. Load Tokenizer and Model
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -98,7 +98,7 @@ def main():
         param.requires_grad = False
 
     # 3. Load and Preprocess SQuAD 2.0 Dataset
-    print("📥 Downloading and preprocessing SQuAD 2.0...")
+    print("Downloading and preprocessing SQuAD 2.0...")
     # We use the HF datasets library to get the raw SQuAD v2
     datasets = load_dataset("squad_v2")
     
@@ -125,7 +125,7 @@ def main():
     loss_fn = nn.CrossEntropyLoss()
 
     # 5. Training Loop
-    print("🔥 Starting training...")
+    print("Starting training...")
     model.train()
     
     for epoch in range(epochs):
@@ -164,14 +164,14 @@ def main():
             progress_bar.set_postfix({"loss": total_batch_loss.item()})
 
         avg_loss = total_loss / len(train_dataloader)
-        print(f"✅ Epoch {epoch + 1} finished. Average Loss: {avg_loss:.4f}")
+        print(f"Epoch {epoch + 1} finished. Average Loss: {avg_loss:.4f}")
 
     # 6. Save the trained model
     os.makedirs("trained_models/partial", exist_ok=True)
     save_path = "trained_models/partial/bilbert_distil_qa_weights.pth"
-    print(f"💾 Saving trained model to {save_path}...")
+    print(f"Saving trained model to {save_path}...")
     torch.save(model.state_dict(), save_path)
-    print("🎉 Training Complete!")
+    print("Training Complete!")
 
 if __name__ == "__main__":
     main()
