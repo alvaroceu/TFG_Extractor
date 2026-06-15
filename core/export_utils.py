@@ -9,7 +9,6 @@ def export_results_to_excel(master_data: list, excel_name="resultados_totales.xl
     """
     df = pd.DataFrame(master_data)
     
-    # Reordenamos las columnas por seguridad para asegurar el formato pedido
     cols_order = [
         "Question ID", "Dataset", "Context", "Question", "Ground Truth", 
         "Model", "Answer", "ExecTime", "Status", "ExactMatch", 
