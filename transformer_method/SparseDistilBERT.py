@@ -7,9 +7,7 @@ from transformers import pipeline
 from core.extractor_base import ExtractorBase
 from core.preprocessing import *
 
-# =====================================================================
-# 1. BIG BIRD LITE (Velocidad Real + Puente Global CLS)
-# =====================================================================
+# Big bird based approach
 class BigBirdLiteAttention(MultiHeadSelfAttention):
     def __init__(self, config, block_size=64, **kwargs):
         super().__init__(config)
@@ -27,11 +25,11 @@ class BigBirdLiteAttention(MultiHeadSelfAttention):
         v = shape(self.v_lin(value))
         v_orig = v
 
-        # --- A) Atención global del token [CLS] ---
+        # [CLS] token
         q_cls = q[:, :, 0:1, :] 
         scores_cls = torch.matmul(q_cls / math.sqrt(dim_per_head), k.transpose(-1, -2))
 
-        # --- B) Calcular los bloques ---
+        # Attention block
         pad_len = (self.block_size - q_length % self.block_size) % self.block_size
         if pad_len > 0:
             q = F.pad(q, (0, 0, 0, pad_len))
@@ -54,28 +52,21 @@ class BigBirdLiteAttention(MultiHeadSelfAttention):
         q_blocks = q_blocks / math.sqrt(dim_per_head)
         scores_blocks = torch.matmul(q_blocks, k_combined.transpose(-1, -2)) 
 
-        # APLICAR LA MÁSCARA ANTES DEL SOFTMAX
         if mask is not None:
-            # En DistilBERT, mask tiene 1 para tokens reales y 0 para padding
             
-            # 1. Enmascarar el CLS
             mask_cls_bool = (mask == 0).view(bs, 1, 1, q_length)
             scores_cls = scores_cls.masked_fill(mask_cls_bool, torch.tensor(torch.finfo(scores_cls.dtype).min))
             
-            # 2. Enmascarar los bloques
-            # Pad a la máscara igual que a los tensores
             mask_padded = F.pad(mask, (0, pad_len), value=0)
             mask_blocks = mask_padded.view(bs, num_blocks, self.block_size)
             
-            # Máscara para el CLS que se une a los bloques
             cls_mask = mask[:, 0:1].unsqueeze(1).expand(bs, num_blocks, 1)
             
-            # Máscara combinada (CLS + Bloque)
+            # CLS + blocks
             k_mask_combined = torch.cat([cls_mask, mask_blocks], dim=2)
             k_mask_bool = (k_mask_combined == 0).view(bs, 1, num_blocks, 1, 1 + self.block_size)
             
             scores_blocks = scores_blocks.masked_fill(k_mask_bool, torch.tensor(torch.finfo(scores_blocks.dtype).min))
-        # ==========================================================
 
         weights_cls = self.dropout(F.softmax(scores_cls, dim=-1))
         context_cls = torch.matmul(weights_cls, v_orig)
@@ -94,12 +85,9 @@ class BigBirdLiteAttention(MultiHeadSelfAttention):
 
         return (context, weights_blocks) if output_attentions else (context,)
 
-# =====================================================================
-# ENRUTADOR PRINCIPAL
-# =====================================================================
 def inject_attention(model, block_size=64):
     """
-    Inyecta la capa de atención seleccionada en DistilBERT.
+    Change attention layer in DistilBERT. Insert our custom implementation.
     """
     
     for i, layer in enumerate(model.distilbert.transformer.layer):
@@ -107,7 +95,7 @@ def inject_attention(model, block_size=64):
         
         new_attention = BigBirdLiteAttention(model.config, block_size=block_size)
 
-        # Transferencia de conocimiento
+        # Transfer knowledge
         new_attention.q_lin.load_state_dict(old_attention.q_lin.state_dict())
         new_attention.k_lin.load_state_dict(old_attention.k_lin.state_dict())
         new_attention.v_lin.load_state_dict(old_attention.v_lin.state_dict())
@@ -118,16 +106,12 @@ def inject_attention(model, block_size=64):
         
     return model
 
-# =====================================================================
-# CLASE EXTRACTORA
-# =====================================================================
+# =New Sparse class
 class TransformerSparseDistilBertExtractor(ExtractorBase):
     
-    # Hemos añadido todos los parámetros al constructor
     def __init__(self, block_size=64):
         self.sparse_model = pipeline('question-answering', model='twmkn9/distilbert-base-uncased-squad2', tokenizer='twmkn9/distilbert-base-uncased-squad2', torch_dtype=torch.float16, device=0)
         
-        # Inyectamos el modelo seleccionado
         self.sparse_model.model = inject_attention(
             self.sparse_model.model, 
             block_size=block_size
